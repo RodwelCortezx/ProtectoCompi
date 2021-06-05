@@ -1,0 +1,247 @@
+package Analizadores;
+import java_cup.runtime.Symbol;
+import java.util.LinkedList;
+
+parser code
+{:
+
+    public String error=""; 
+   
+    public String tabla = "";
+
+    public String tab = "";
+    public String ident = "";
+    public String fila = "";
+    public String columna = "";
+    public String column = "";
+    public String col = "";
+    public String resultado = "";
+
+    public static LinkedList <TError> TablaES= new LinkedList <TError>();
+
+public void syntax_error(Symbol s)
+        {
+        String lexema = s.value.toString();
+        int fila = s.right;
+        int columna = s.left;
+        error = "Error Sintactico: " + lexema +" en la linea "+ fila + " en la columna " + columna + "\nCaracter no esperado";
+        System.out.println(error);        
+
+        TError datos = new TError(lexema,fila,columna,"Error Sintactico ", "Caracter no esperado" );
+        TablaES.add(datos);
+       }
+:};
+
+action code
+{:
+
+:}
+
+/*Declaraciones*/
+
+terminal Inicio_Doc_html,
+        Fin_Doc_html,
+        Inicio_Encabezado,
+        Fin_Encabezado,
+        Inicio_Cuerpo,
+        Fin_Cuerpo,
+        Inicio_Tabla,
+        Fin_Tabla,
+        Inicio_Fila,
+        Inicio_Lista,
+        Fin_Lista,
+        Columna,
+        Borde,
+        Titulo,
+        Negrita,
+        Fin_Fila,
+        Inicio_Imagen,
+        Fin_Imagen,
+        Identificador,
+        Enlace,
+        EnlaceR,
+        Imprimir,
+        Comillas,
+        Parentesis_Aper,
+        Parentesis_Cierre,
+        Igual,
+        Signo_multiplicacion,
+        Signo_Suma,
+        Signo_resta,
+        Punto_coma,
+        Separador,
+        Dos_puntos,
+        Numeros,
+        Correo,
+        Ancho,
+        Nombre,
+        Altura,
+        Decimal;
+
+
+
+non terminal INI, INICIO, ENCABEZADO, CUERPO, BODY, TABLA, FILA, COLUMNA, ENLACE, LISTA, IMAGEN, SIGNOS, OPERACION, IDENT, COL, VAL, 
+             BORDE, LIS, ANCHO, ALTURA, NOM, NEGRITA, A, OP;
+
+
+precedence left Signo_Suma, Signo_resta;
+precedence left Signo_multiplicacion;
+
+start with INICIO;
+                            /*Reglas Semanticas*/
+
+/*INI::= INICIO:resul {: RESULT=resul ; :};*/
+
+INICIO::= Inicio_Doc_html:a ENCABEZADO:b CUERPO:c Fin_Doc_html:d
+     {:    
+       resultado = "<html>\n" + String.valueOf(b) + String.valueOf(c)+ "\n</html>";
+
+     :}
+;
+             
+ENCABEZADO::= Inicio_Encabezado:a Titulo Igual Comillas IDENT Comillas  Fin_Encabezado:c
+        {:
+           RESULT = "<head>\n"+"<title>\n"+ ident + " \n</title>\n" + "</head>\n";
+       :}
+     ;
+
+CUERPO::= Inicio_Cuerpo BODY:a Fin_Cuerpo 
+         {:
+             RESULT = " <body>\n" +  String.valueOf(a) + "</body>\n";
+             
+          :}   ; 
+
+BODY::=  | TABLA:a   {:
+               
+            RESULT = String.valueOf(a); :}  BODY
+           
+          |Identificador:b  {:RESULT = String.valueOf(b); :}   BODY    
+                                  
+          | LISTA:c  {:  RESULT = String.valueOf(c); :}  BODY
+         
+          |ENLACE:d BODY {:  RESULT = String.valueOf(d); :}  
+         
+          |IMAGEN:e BODY {:  RESULT = String.valueOf(e); :}  
+ 
+          |NEGRITA:f BODY  {:  RESULT = String.valueOf(f); :}  
+          
+          |OP:g BODY   {: RESULT = String.valueOf(g); :}
+          ;
+
+                                /*BLoque de Tabla*/
+
+TABLA::= Inicio_Tabla BORDE:a FILA Fin_Tabla
+         {: 
+            tabla += "<table"+ String.valueOf(a)+">\n" + fila + "\n</table>\n";    
+           RESULT = tabla; :}
+         ;
+
+BORDE::= Borde Igual:b  Numeros:c
+       {: RESULT = " border="+"\"" +String.valueOf(c) +"\""; :}    
+      ;
+
+FILA::= | FILA Inicio_Fila COL:a Fin_Fila 
+
+               {:
+             fila += " <tr>"+ String.valueOf(a) +"</tr>\n"; 
+             
+             RESULT = fila;
+             columna = " ";
+              :}  ;
+
+COL::=   |COL Columna Igual COLUMNA:a {:
+       
+           columna += "<td>"+ col +"</td>";
+          RESULT = columna; :}
+ ;
+
+COLUMNA::= Inicio_Imagen IDENT:a Fin_Imagen {:
+           column = "<img src=\""+ String.valueOf(a) +"\">";
+           
+           RESULT = column; :} 
+
+           |Comillas VAL:a Comillas  {:
+             
+             col = String.valueOf(a);
+             RESULT = col; :} ;   
+
+VAL::= IDENT:a {: RESULT = ident; :}
+       |Numeros:b {: RESULT = String.valueOf(b);  :}
+       |OPERACION:c {:RESULT =  String.valueOf(c); :}
+       |Correo:d {: RESULT = String.valueOf(d);:};
+       
+IDENT::= | Identificador:a {: 
+         ident =  String.valueOf(a);
+         RESULT =ident; :} IDENT;
+
+       /* |Identificador:b {: RESULT = String.valueOf(b); :} IDENT */  
+
+OPERACION::= Numeros:a  Signo_Suma  Numeros:b
+               {: 
+                  int var1 = Integer.parseInt(a.toString());
+                  int var2 = Integer.parseInt(b.toString());
+                  int resul= var1+var2;
+                  RESULT = String.valueOf(resul);
+                 :}
+            | Numeros:a  Signo_resta  Numeros:b
+               {: 
+                  int var1 = Integer.parseInt(a.toString());
+                  int var2 = Integer.parseInt(b.toString());
+                  int resul= var1-var2;
+                  RESULT = String.valueOf(resul);
+                 :}
+             | Numeros:a  Signo_multiplicacion  Numeros:b
+                   {: 
+                  int var1 = Integer.parseInt(a.toString());
+                  int var2 = Integer.parseInt(b.toString());
+                  int resul= var1*var2;
+                  RESULT = String.valueOf(resul);
+                   :}
+             |Parentesis_Aper OPERACION:a{: RESULT = a; :} Parentesis_Cierre  Signo_multiplicacion   Decimal         
+              ;
+              
+
+SIGNOS::= Signo_multiplicacion | Signo_Suma | Signo_resta; 
+            
+``
+                                /*Bloque de Lista*/
+
+LISTA::= Inicio_Lista LIS Fin_Lista 
+          {: RESULT = "<lis>"+ "</lis>"; :}
+         ;
+LIS::= Separador
+       |Separador LIS
+       |Identificador 
+       |Identificador LIS; 
+
+                                /*Bloque de Negrita*/
+
+NEGRITA::= Negrita Parentesis_Aper A Parentesis_Cierre
+           |Imprimir Parentesis_Aper A Parentesis_Cierre ;
+
+A::= Identificador
+     | Identificador A
+     | Numeros;
+     
+OP::= Identificador Igual Numeros SIGNOS Numeros Punto_coma;
+
+                                /*Bloque de Imagen*/  
+
+IMAGEN::= Inicio_Imagen NOM ENLACE ANCHO ALTURA Fin_Imagen          
+        ;
+NOM::= Nombre Igual Comillas IDENT Comillas;
+
+ENLACE::= EnlaceR Igual Comillas Enlace Punto_coma;
+
+ANCHO ::= Ancho Dos_puntos Numeros;
+
+ALTURA::= Altura Dos_puntos Numeros;
+
+
+
+
+
+ 
+
+
+
